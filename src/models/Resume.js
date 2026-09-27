@@ -16,6 +16,13 @@ const resumeSchema = new mongoose.Schema(
       maxlength: 160,
     },
 
+    /*
+    |--------------------------------------------------------------------------
+    | Resume Template
+    |--------------------------------------------------------------------------
+    | Total supported templates: 20
+    */
+
     template: {
       type: String,
       enum: [
@@ -27,6 +34,18 @@ const resumeSchema = new mongoose.Schema(
         "ats",
         "tech",
         "elegant",
+        "classic",
+        "bold",
+        "swiss",
+        "compact",
+        "sidebar",
+        "academic",
+        "startup",
+        "finance",
+        "healthcare",
+        "legal",
+        "consulting",
+        "editorial",
       ],
       default: "executive",
     },

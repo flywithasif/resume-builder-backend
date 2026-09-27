@@ -9,6 +9,7 @@ import {
 |--------------------------------------------------------------------------
 | Allowed Templates
 |--------------------------------------------------------------------------
+| Total supported templates: 20
 */
 
 const allowedTemplates = new Set([
@@ -20,6 +21,18 @@ const allowedTemplates = new Set([
   "ats",
   "tech",
   "elegant",
+  "classic",
+  "bold",
+  "swiss",
+  "compact",
+  "sidebar",
+  "academic",
+  "startup",
+  "finance",
+  "healthcare",
+  "legal",
+  "consulting",
+  "editorial",
 ]);
 
 function cleanTemplate(template) {
@@ -209,7 +222,7 @@ export async function duplicateResume(req, res) {
   const duplicate = await Resume.create({
     user: req.user._id,
     title: `${sourceResume.title} Copy`,
-    template: sourceResume.template,
+    template: cleanTemplate(sourceResume.template),
     progress: sourceResume.progress,
     data: sourceResume.data,
   });
