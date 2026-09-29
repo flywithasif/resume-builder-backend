@@ -1,13 +1,13 @@
 import { Router } from "express";
 
 import {
-  createResume,
-  deleteResume,
-  duplicateResume,
-  getResume,
-  getResumes,
-  updateResume,
-} from "../controllers/resumeController.js";
+  createCoverLetter,
+  deleteCoverLetter,
+  duplicateCoverLetter,
+  getCoverLetter,
+  getCoverLetters,
+  updateCoverLetter,
+} from "../controllers/coverLetterController.js";
 
 import { protect } from "../middleware/auth.js";
 
@@ -15,7 +15,7 @@ const router = Router();
 
 /*
 |--------------------------------------------------------------------------
-| All Resume Routes Require Authentication
+| All Cover Letter Routes Require Authentication
 |--------------------------------------------------------------------------
 */
 
@@ -23,50 +23,50 @@ router.use(protect);
 
 /*
 |--------------------------------------------------------------------------
-| Create Resume
+| Create Cover Letter
 |--------------------------------------------------------------------------
 */
 
-router.post("/", createResume);
+router.post("/", createCoverLetter);
 
 /*
 |--------------------------------------------------------------------------
-| Get All Resumes
+| Get All Cover Letters
 |--------------------------------------------------------------------------
 */
 
-router.get("/", getResumes);
+router.get("/", getCoverLetters);
 
 /*
 |--------------------------------------------------------------------------
-| Get Single Resume
+| Get Single Cover Letter
 |--------------------------------------------------------------------------
 */
 
-router.get("/:id", getResume);
+router.get("/:id", getCoverLetter);
 
 /*
 |--------------------------------------------------------------------------
-| Update Resume
+| Update Cover Letter
 |--------------------------------------------------------------------------
 */
 
-router.put("/:id", updateResume);
+router.put("/:id", updateCoverLetter);
 
 /*
 |--------------------------------------------------------------------------
-| Delete Resume
+| Delete Cover Letter
 |--------------------------------------------------------------------------
 */
 
-router.delete("/:id", deleteResume);
+router.delete("/:id", deleteCoverLetter);
 
 /*
 |--------------------------------------------------------------------------
-| Duplicate Resume
+| Duplicate Cover Letter
 |--------------------------------------------------------------------------
 */
 
-router.post("/:id/duplicate", duplicateResume);
+router.post("/:id/duplicate", duplicateCoverLetter);
 
 export default router;
