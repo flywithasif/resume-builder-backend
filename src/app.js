@@ -21,13 +21,17 @@ const app = express();
 |--------------------------------------------------------------------------
 */
 
-const allowedOrigins = (
-  process.env.CLIENT_URL ||
-  "http://localhost:5173"
+const envOrigins = (
+  process.env.CLIENT_URL || ""
 )
   .split(",")
-  .map((item) => item.trim())
+  .map((item) => item.trim().replace(/\/$/, ""))
   .filter(Boolean);
+
+const allowedOrigins = [
+  "https://resume-builder-frontend-neon.vercel.app",
+  ...envOrigins,
+];
 
 /*
 |--------------------------------------------------------------------------
@@ -46,17 +50,43 @@ app.use(helmet());
 app.use(
   cors({
     origin(origin, callback) {
+      /*
+      |--------------------------------------------------------------------
+      | Allow server-to-server requests and tools without an Origin header
+      |--------------------------------------------------------------------
+      */
+
       if (!origin) {
         return callback(null, true);
       }
 
-      if (allowedOrigins.includes(origin)) {
+      const normalizedOrigin = origin
+        .trim()
+        .replace(/\/$/, "");
+
+      /*
+      |--------------------------------------------------------------------
+      | Allow configured frontend origins
+      |--------------------------------------------------------------------
+      */
+
+      if (
+        allowedOrigins.includes(normalizedOrigin)
+      ) {
         return callback(null, true);
       }
 
+      /*
+      |--------------------------------------------------------------------
+      | Allow localhost during development
+      |--------------------------------------------------------------------
+      */
+
       if (
         process.env.NODE_ENV !== "production" &&
-        /^http:\/\/localhost:\d+$/.test(origin)
+        /^http:\/\/localhost:\d+$/.test(
+          normalizedOrigin,
+        )
       ) {
         return callback(null, true);
       }
