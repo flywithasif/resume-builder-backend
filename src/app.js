@@ -6,6 +6,7 @@ import rateLimit from "express-rate-limit";
 import authRoutes from "./routes/authRoutes.js";
 import resumeRoutes from "./routes/resumeRoutes.js";
 import coverLetterRoutes from "./routes/coverLetterRoutes.js";
+import importRoutes from "./routes/importRoutes.js";
 
 import {
   errorHandler,
@@ -128,8 +129,7 @@ app.use(
 app.get("/api/health", (req, res) => {
   return res.status(200).json({
     success: true,
-    message:
-      "Resume Builder SaaS API is running.",
+    message: "Resume Builder SaaS API is running.",
     environment:
       process.env.NODE_ENV || "development",
   });
@@ -154,6 +154,11 @@ app.use(
 app.use(
   "/api/cover-letters",
   coverLetterRoutes,
+);
+
+app.use(
+  "/api/import",
+  importRoutes,
 );
 
 /*
