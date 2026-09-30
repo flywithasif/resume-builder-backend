@@ -8,15 +8,15 @@ const PORT = process.env.PORT || 5000;
 
 /*
 |--------------------------------------------------------------------------
-| Start Server
+| Vercel / Serverless Handler
 |--------------------------------------------------------------------------
 */
 
-async function startServer() {
+const handler = async (req, res) => {
   try {
     /*
     |--------------------------------------------------------------------------
-    | Connect MongoDB
+    | Connect MongoDB Before Handling Request
     |--------------------------------------------------------------------------
     */
 
@@ -24,23 +24,55 @@ async function startServer() {
 
     /*
     |--------------------------------------------------------------------------
-    | Start Express
+    | Handle Express Request
     |--------------------------------------------------------------------------
     */
 
-    app.listen(PORT, () => {
-      console.log(
-        `Resume Builder API running on http://localhost:${PORT}`
-      );
-    });
+    return app(req, res);
   } catch (error) {
     console.error(
-      "Server startup failed:",
-      error.message
+      "Serverless request error:",
+      error,
     );
 
-    process.exit(1);
+    return res.status(500).json({
+      success: false,
+      message:
+        error?.message ||
+        "Internal server error.",
+    });
   }
+};
+
+/*
+|--------------------------------------------------------------------------
+| Local Development
+|--------------------------------------------------------------------------
+*/
+
+if (process.env.VERCEL !== "1") {
+  connectDB()
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(
+          `Resume Builder API running on http://localhost:${PORT}`,
+        );
+      });
+    })
+    .catch((error) => {
+      console.error(
+        "Server startup failed:",
+        error.message,
+      );
+
+      process.exit(1);
+    });
 }
 
-startServer();
+/*
+|--------------------------------------------------------------------------
+| Export Serverless Handler
+|--------------------------------------------------------------------------
+*/
+
+export default handler;

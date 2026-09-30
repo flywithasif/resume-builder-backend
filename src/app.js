@@ -45,13 +45,6 @@ app.use(helmet());
 app.use(
   cors({
     origin(origin, callback) {
-      /*
-      |--------------------------------------------------------------------------
-      | Allow requests without origin
-      | Example: Postman / server-side requests
-      |--------------------------------------------------------------------------
-      */
-
       if (!origin) {
         return callback(null, true);
       }
@@ -60,12 +53,35 @@ app.use(
         return callback(null, true);
       }
 
+      if (
+        process.env.NODE_ENV !== "production" &&
+        /^http:\/\/localhost:\d+$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
+
       return callback(
         new Error("CORS origin not allowed."),
       );
     },
 
+    methods: [
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "OPTIONS",
+    ],
+
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+    ],
+
     credentials: true,
+
+    optionsSuccessStatus: 204,
   }),
 );
 
@@ -110,9 +126,10 @@ app.use(
 */
 
 app.get("/api/health", (req, res) => {
-  res.json({
+  return res.status(200).json({
     success: true,
-    message: "Resume Builder SaaS API is running.",
+    message:
+      "Resume Builder SaaS API is running.",
     environment:
       process.env.NODE_ENV || "development",
   });
@@ -141,7 +158,7 @@ app.use(
 
 /*
 |--------------------------------------------------------------------------
-| 404
+| 404 Handler
 |--------------------------------------------------------------------------
 */
 
