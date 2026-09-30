@@ -1,139 +1,142 @@
 import User from "../models/User.js";
 import { signToken } from "../utils/jwt.js";
 
-/*
-|--------------------------------------------------------------------------
-| REGISTER
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   DEFAULT SETTINGS
+========================================================= */
+
+const defaultSettings = {
+  theme: "light",
+  defaultTemplate: "executive",
+  accent: "champagne",
+
+  compactMode: false,
+  reducedMotion: false,
+
+  autosave: true,
+  autosaveInterval: "30",
+  showCompletionTips: true,
+  spellcheck: true,
+  showPageBreaks: true,
+
+  emailNotifications: true,
+  resumeReminders: true,
+  securityAlerts: true,
+  productUpdates: false,
+
+  profileVisibility: "private",
+  analytics: false,
+};
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function getPublicUser(user) {
+  return {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone || "",
+    settings: {
+      ...defaultSettings,
+      ...(user.settings || {}),
+    },
+  };
+}
+
+function normalizeEmail(email) {
+  return String(email || "")
+    .trim()
+    .toLowerCase();
+}
+
+/* =========================================================
+   REGISTER
+========================================================= */
 
 export async function register(req, res) {
-  const { name, email, password } = req.body;
+  const {
+    name,
+    email,
+    password,
+  } = req.body;
 
-  /*
-  |--------------------------------------------------------------------------
-  | Basic Validation
-  |--------------------------------------------------------------------------
-  */
-
-  if (!name?.trim() || !email?.trim() || !password) {
+  if (
+    !name?.trim() ||
+    !email?.trim() ||
+    !password
+  ) {
     return res.status(400).json({
       success: false,
-      message: "Name, email and password are required.",
-    });
-  }
-
-  if (name.trim().length < 2) {
-    return res.status(400).json({
-      success: false,
-      message: "Name must contain at least 2 characters.",
+      message:
+        "Name, email and password are required.",
     });
   }
 
   if (password.length < 8) {
     return res.status(400).json({
       success: false,
-      message: "Password must be at least 8 characters.",
+      message:
+        "Password must be at least 8 characters.",
     });
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Normalize Email
-  |--------------------------------------------------------------------------
-  */
+  const normalizedEmail =
+    normalizeEmail(email);
 
-  const normalizedEmail = email.trim().toLowerCase();
-
-  /*
-  |--------------------------------------------------------------------------
-  | Existing User
-  |--------------------------------------------------------------------------
-  */
-
-  const existingUser = await User.findOne({
+  const existing = await User.findOne({
     email: normalizedEmail,
   });
 
-  if (existingUser) {
+  if (existing) {
     return res.status(409).json({
       success: false,
-      message: "An account with this email already exists.",
+      message:
+        "An account with this email already exists.",
     });
   }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Create User
-  |--------------------------------------------------------------------------
-  */
 
   const user = await User.create({
     name: name.trim(),
     email: normalizedEmail,
     password,
+    settings: defaultSettings,
   });
 
-  /*
-  |--------------------------------------------------------------------------
-  | JWT
-  |--------------------------------------------------------------------------
-  */
+  const token = signToken(
+    user._id.toString(),
+  );
 
-  const token = signToken(user._id.toString());
-
-  /*
-  |--------------------------------------------------------------------------
-  | Response
-  |--------------------------------------------------------------------------
-  */
-
-  return res.status(201).json({
+  res.status(201).json({
     success: true,
     message: "Account created successfully.",
     token,
-
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-    },
+    user: getPublicUser(user),
   });
 }
 
-/*
-|--------------------------------------------------------------------------
-| LOGIN
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   LOGIN
+========================================================= */
 
 export async function login(req, res) {
-  const { email, password } = req.body;
+  const {
+    email,
+    password,
+  } = req.body;
 
   if (!email?.trim() || !password) {
     return res.status(400).json({
       success: false,
-      message: "Email and password are required.",
+      message:
+        "Email and password are required.",
     });
   }
 
-  const normalizedEmail = email.trim().toLowerCase();
-
-  /*
-  |--------------------------------------------------------------------------
-  | Find User
-  |--------------------------------------------------------------------------
-  */
-
   const user = await User.findOne({
-    email: normalizedEmail,
+    email: normalizeEmail(email),
   }).select("+password");
-
-  /*
-  |--------------------------------------------------------------------------
-  | Check Credentials
-  |--------------------------------------------------------------------------
-  */
 
   if (
     !user ||
@@ -145,47 +148,269 @@ export async function login(req, res) {
     });
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | JWT
-  |--------------------------------------------------------------------------
-  */
+  const token = signToken(
+    user._id.toString(),
+  );
 
-  const token = signToken(user._id.toString());
-
-  /*
-  |--------------------------------------------------------------------------
-  | Response
-  |--------------------------------------------------------------------------
-  */
-
-  return res.json({
+  res.json({
     success: true,
     message: "Login successful.",
     token,
+    user: getPublicUser(user),
+  });
+}
 
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
+/* =========================================================
+   GET CURRENT USER
+========================================================= */
+
+export async function me(req, res) {
+  const user = await User.findById(
+    req.user._id,
+  ).lean();
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User account not found.",
+    });
+  }
+
+  res.json({
+    success: true,
+    user: getPublicUser(user),
+  });
+}
+
+/* =========================================================
+   UPDATE PROFILE
+========================================================= */
+
+export async function updateProfile(
+  req,
+  res,
+) {
+  const {
+    name,
+    email,
+    phone,
+  } = req.body;
+
+  if (!name?.trim()) {
+    return res.status(400).json({
+      success: false,
+      message: "Name is required.",
+    });
+  }
+
+  if (!email?.trim()) {
+    return res.status(400).json({
+      success: false,
+      message: "Email is required.",
+    });
+  }
+
+  const normalizedEmail =
+    normalizeEmail(email);
+
+  const existingUser =
+    await User.findOne({
+      email: normalizedEmail,
+      _id: {
+        $ne: req.user._id,
+      },
+    });
+
+  if (existingUser) {
+    return res.status(409).json({
+      success: false,
+      message:
+        "An account with this email already exists.",
+    });
+  }
+
+  const user =
+    await User.findById(
+      req.user._id,
+    );
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User account not found.",
+    });
+  }
+
+  user.name = name.trim();
+  user.email = normalizedEmail;
+  user.phone = String(
+    phone || "",
+  ).trim();
+
+  await user.save();
+
+  res.json({
+    success: true,
+    message:
+      "Profile updated successfully.",
+    user: getPublicUser(user),
+  });
+}
+
+/* =========================================================
+   CHANGE PASSWORD
+========================================================= */
+
+export async function changePassword(
+  req,
+  res,
+) {
+  const {
+    currentPassword,
+    newPassword,
+  } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "Current password and new password are required.",
+    });
+  }
+
+  if (newPassword.length < 8) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "New password must be at least 8 characters.",
+    });
+  }
+
+  if (
+    currentPassword === newPassword
+  ) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "New password must be different from your current password.",
+    });
+  }
+
+  const user =
+    await User.findById(
+      req.user._id,
+    ).select("+password");
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User account not found.",
+    });
+  }
+
+  const passwordMatch =
+    await user.comparePassword(
+      currentPassword,
+    );
+
+  if (!passwordMatch) {
+    return res.status(401).json({
+      success: false,
+      message:
+        "Current password is incorrect.",
+    });
+  }
+
+  user.password = newPassword;
+
+  await user.save();
+
+  res.json({
+    success: true,
+    message:
+      "Password updated successfully.",
+  });
+}
+
+/* =========================================================
+   GET SETTINGS
+========================================================= */
+
+export async function getSettings(
+  req,
+  res,
+) {
+  const user =
+    await User.findById(
+      req.user._id,
+    ).lean();
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User account not found.",
+    });
+  }
+
+  res.json({
+    success: true,
+    settings: {
+      ...defaultSettings,
+      ...(user.settings || {}),
     },
   });
 }
 
-/*
-|--------------------------------------------------------------------------
-| GET CURRENT USER
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   UPDATE SETTINGS
+========================================================= */
 
-export async function me(req, res) {
-  return res.json({
+export async function updateSettings(
+  req,
+  res,
+) {
+  const incomingSettings =
+    req.body?.settings;
+
+  if (
+    !incomingSettings ||
+    typeof incomingSettings !==
+      "object" ||
+    Array.isArray(incomingSettings)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "Valid settings object is required.",
+    });
+  }
+
+  const user =
+    await User.findById(
+      req.user._id,
+    );
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User account not found.",
+    });
+  }
+
+  const nextSettings = {
+    ...defaultSettings,
+    ...(user.settings || {}),
+    ...incomingSettings,
+  };
+
+  user.settings = nextSettings;
+
+  await user.save();
+
+  res.json({
     success: true,
-
-    user: {
-      id: req.user._id,
-      name: req.user.name,
-      email: req.user.email,
-    },
+    message:
+      "Settings updated successfully.",
+    settings: nextSettings,
   });
 }
