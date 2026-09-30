@@ -17,21 +17,12 @@ const app = express();
 
 /*
 |--------------------------------------------------------------------------
-| Allowed Frontend Origins
+| Frontend URL
 |--------------------------------------------------------------------------
 */
 
-const envOrigins = (
-  process.env.CLIENT_URL || ""
-)
-  .split(",")
-  .map((item) => item.trim().replace(/\/$/, ""))
-  .filter(Boolean);
-
-const allowedOrigins = [
-  "https://resume-builder-frontend-neon.vercel.app",
-  ...envOrigins,
-];
+const FRONTEND_URL =
+  "https://resume-builder-frontend-neon.vercel.app";
 
 /*
 |--------------------------------------------------------------------------
@@ -49,52 +40,7 @@ app.use(helmet());
 
 app.use(
   cors({
-    origin(origin, callback) {
-      /*
-      |--------------------------------------------------------------------
-      | Allow server-to-server requests and tools without an Origin header
-      |--------------------------------------------------------------------
-      */
-
-      if (!origin) {
-        return callback(null, true);
-      }
-
-      const normalizedOrigin = origin
-        .trim()
-        .replace(/\/$/, "");
-
-      /*
-      |--------------------------------------------------------------------
-      | Allow configured frontend origins
-      |--------------------------------------------------------------------
-      */
-
-      if (
-        allowedOrigins.includes(normalizedOrigin)
-      ) {
-        return callback(null, true);
-      }
-
-      /*
-      |--------------------------------------------------------------------
-      | Allow localhost during development
-      |--------------------------------------------------------------------
-      */
-
-      if (
-        process.env.NODE_ENV !== "production" &&
-        /^http:\/\/localhost:\d+$/.test(
-          normalizedOrigin,
-        )
-      ) {
-        return callback(null, true);
-      }
-
-      return callback(
-        new Error("CORS origin not allowed."),
-      );
-    },
+    origin: FRONTEND_URL,
 
     methods: [
       "GET",
