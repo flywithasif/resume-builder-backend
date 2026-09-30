@@ -8,7 +8,6 @@
     "start": "node src/server.js"
   },
   "dependencies": {
-    "@napi-rs/canvas": "^1.0.9",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
@@ -20,7 +19,7 @@
     "mongoose": "^8.18.0",
     "multer": "^2.4.0",
     "openai": "^7.25.0",
-    "pdf-parse": "^2.4.5"
+    "pdfjs-dist": "^6.3.289"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

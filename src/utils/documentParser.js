@@ -1,76 +1,34 @@
 import mammoth from "mammoth";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 
 /*
 |--------------------------------------------------------------------------
 | Extract PDF Text
 |--------------------------------------------------------------------------
-|
-| IMPORTANT:
-| pdf-parse is loaded lazily inside the PDF function.
-| This prevents the Vercel serverless function from crashing during
-| startup when PDF dependencies are not needed.
-|
-|--------------------------------------------------------------------------
 */
 
 async function extractPdfText(buffer) {
-  try {
-    /*
-    |--------------------------------------------------------------------------
-    | Load pdf-parse only when a PDF is actually uploaded
-    |--------------------------------------------------------------------------
-    */
+  const loadingTask = pdfjsLib.getDocument({
+    data: new Uint8Array(buffer),
+  });
 
-    const pdfModule = await import("pdf-parse");
+  const pdf = await loadingTask.promise;
 
-    /*
-    |--------------------------------------------------------------------------
-    | Newer pdf-parse versions
-    |--------------------------------------------------------------------------
-    */
+  const pages = [];
 
-    if (typeof pdfModule.PDFParse === "function") {
-      const parser = new pdfModule.PDFParse({
-        data: buffer,
-      });
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber);
 
-      try {
-        const result = await parser.getText();
+    const textContent = await page.getTextContent();
 
-        return result?.text || "";
-      } finally {
-        if (typeof parser.destroy === "function") {
-          await parser.destroy();
-        }
-      }
-    }
+    const pageText = textContent.items
+      .map((item) => item.str || "")
+      .join(" ");
 
-    /*
-    |--------------------------------------------------------------------------
-    | Older pdf-parse versions
-    |--------------------------------------------------------------------------
-    */
-
-    if (typeof pdfModule.default === "function") {
-      const result = await pdfModule.default(buffer);
-
-      return result?.text || "";
-    }
-
-    throw new Error(
-      "Unsupported pdf-parse version.",
-    );
-  } catch (error) {
-    console.error(
-      "PDF parsing error:",
-      error,
-    );
-
-    throw new Error(
-      error?.message ||
-        "Unable to read the PDF file.",
-    );
+    pages.push(pageText);
   }
+
+  return pages.join("\n\n").trim();
 }
 
 /*
@@ -80,10 +38,9 @@ async function extractPdfText(buffer) {
 */
 
 async function extractDocxText(buffer) {
-  const result =
-    await mammoth.extractRawText({
-      buffer,
-    });
+  const result = await mammoth.extractRawText({
+    buffer,
+  });
 
   return result?.value || "";
 }
@@ -94,13 +51,9 @@ async function extractDocxText(buffer) {
 |--------------------------------------------------------------------------
 */
 
-export async function extractDocumentText(
-  file,
-) {
+export async function extractDocumentText(file) {
   if (!file?.buffer) {
-    throw new Error(
-      "No document was uploaded.",
-    );
+    throw new Error("No document was uploaded.");
   }
 
   const mimeType = file.mimetype;
@@ -128,7 +81,5 @@ export async function extractDocumentText(
     return extractDocxText(file.buffer);
   }
 
-  throw new Error(
-    "Only PDF and DOCX files are supported.",
-  );
+  throw new Error("Only PDF and DOCX files are supported.");
 }
