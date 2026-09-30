@@ -1,5 +1,8 @@
 import mammoth from "mammoth";
-import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import {
+  extractText,
+  getDocumentProxy,
+} from "unpdf";
 
 /*
 |--------------------------------------------------------------------------
@@ -8,27 +11,27 @@ import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 */
 
 async function extractPdfText(buffer) {
-  const loadingTask = pdfjsLib.getDocument({
-    data: new Uint8Array(buffer),
-  });
+  try {
+    const pdf = await getDocumentProxy(
+      new Uint8Array(buffer),
+    );
 
-  const pdf = await loadingTask.promise;
+    const result = await extractText(pdf, {
+      mergePages: true,
+    });
 
-  const pages = [];
+    return result?.text || "";
+  } catch (error) {
+    console.error(
+      "PDF parsing error:",
+      error,
+    );
 
-  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
-    const page = await pdf.getPage(pageNumber);
-
-    const textContent = await page.getTextContent();
-
-    const pageText = textContent.items
-      .map((item) => item.str || "")
-      .join(" ");
-
-    pages.push(pageText);
+    throw new Error(
+      error?.message ||
+        "Unable to read the PDF file.",
+    );
   }
-
-  return pages.join("\n\n").trim();
 }
 
 /*
@@ -38,9 +41,10 @@ async function extractPdfText(buffer) {
 */
 
 async function extractDocxText(buffer) {
-  const result = await mammoth.extractRawText({
-    buffer,
-  });
+  const result =
+    await mammoth.extractRawText({
+      buffer,
+    });
 
   return result?.value || "";
 }
@@ -51,9 +55,13 @@ async function extractDocxText(buffer) {
 |--------------------------------------------------------------------------
 */
 
-export async function extractDocumentText(file) {
+export async function extractDocumentText(
+  file,
+) {
   if (!file?.buffer) {
-    throw new Error("No document was uploaded.");
+    throw new Error(
+      "No document was uploaded.",
+    );
   }
 
   const mimeType = file.mimetype;
@@ -81,5 +89,7 @@ export async function extractDocumentText(file) {
     return extractDocxText(file.buffer);
   }
 
-  throw new Error("Only PDF and DOCX files are supported.");
+  throw new Error(
+    "Only PDF and DOCX files are supported.",
+  );
 }
