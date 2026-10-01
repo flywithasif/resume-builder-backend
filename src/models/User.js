@@ -47,13 +47,50 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: "",
-      maxlength: 30,
+      maxlength: 20,
     },
 
     password: {
       type: String,
       required: true,
       minlength: 8,
+      select: false,
+    },
+
+    // Email verification
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    emailOtpHash: {
+      type: String,
+      default: "",
+      select: false,
+    },
+
+    emailOtpExpiresAt: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+
+    // Forgot password
+    resetOtpHash: {
+      type: String,
+      default: "",
+      select: false,
+    },
+
+    resetOtpExpiresAt: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+
+    resetOtpVerifiedUntil: {
+      type: Date,
+      default: null,
       select: false,
     },
 
@@ -76,10 +113,7 @@ userSchema.pre("save", async function (next) {
     return next();
   }
 
-  this.password = await bcrypt.hash(
-    this.password,
-    12,
-  );
+  this.password = await bcrypt.hash(this.password, 12);
 
   next();
 });
@@ -88,16 +122,8 @@ userSchema.pre("save", async function (next) {
    PASSWORD COMPARE
 ========================================================= */
 
-userSchema.methods.comparePassword = function (
-  password,
-) {
-  return bcrypt.compare(
-    password,
-    this.password,
-  );
+userSchema.methods.comparePassword = function (password) {
+  return bcrypt.compare(password, this.password);
 };
 
-export default mongoose.model(
-  "User",
-  userSchema,
-);
+export default mongoose.model("User", userSchema);

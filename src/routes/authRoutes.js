@@ -2,12 +2,17 @@ import { Router } from "express";
 
 import {
   changePassword,
+  forgotPassword,
   getSettings,
   login,
   me,
   register,
+  resendEmailOtp,
+  resetPassword,
   updateProfile,
   updateSettings,
+  verifyEmail,
+  verifyResetOtp,
 } from "../controllers/authController.js";
 
 import { protect } from "../middleware/auth.js";
@@ -24,9 +29,42 @@ router.post(
 );
 
 router.post(
+  "/verify-email",
+  verifyEmail,
+);
+
+router.post(
+  "/resend-email-otp",
+  resendEmailOtp,
+);
+
+router.post(
   "/login",
   login,
 );
+
+/* =========================================================
+   FORGOT PASSWORD
+========================================================= */
+
+router.post(
+  "/forgot-password",
+  forgotPassword,
+);
+
+router.post(
+  "/verify-reset-otp",
+  verifyResetOtp,
+);
+
+router.post(
+  "/reset-password",
+  resetPassword,
+);
+
+/* =========================================================
+   CURRENT USER
+========================================================= */
 
 router.get(
   "/me",
