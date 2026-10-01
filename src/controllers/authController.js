@@ -602,8 +602,9 @@ export async function forgotPassword(req, res) {
     user.resetOtpHash =
       await hashOtp(otp);
 
-    user.resetOtpExpiresAt =
-      new Date(Date.now() + OTP_EXPIRY_MS);
+    // Forgot password OTP expires after 15 minutes.
+   user.resetOtpExpiresAt =
+   new Date(Date.now() + 15 * 60 * 1000);
 
     user.resetOtpVerifiedUntil = null;
 
