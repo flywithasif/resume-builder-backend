@@ -78,46 +78,116 @@ async function sendEmail({
     );
   }
 
-  const response = await fetch(BREVO_API_URL, {
-    method: "POST",
-
-    headers: {
-      accept: "application/json",
-      "api-key": apiKey,
-      "content-type": "application/json",
+  const payload = {
+    sender: {
+      email: senderEmail,
+      name: senderName,
     },
 
-    body: JSON.stringify({
-      sender: {
-        email: senderEmail,
-        name: senderName,
+    to: [
+      {
+        email: recipientEmail,
+        ...(recipientName
+          ? {
+              name: recipientName,
+            }
+          : {}),
+      },
+    ],
+
+    subject,
+    htmlContent,
+    textContent,
+  };
+
+  let response;
+
+  /* =========================================================
+     SEND EMAIL TO BREVO
+  ========================================================= */
+
+  try {
+    response = await fetch(BREVO_API_URL, {
+      method: "POST",
+
+      headers: {
+        accept: "application/json",
+        "api-key": apiKey,
+        "content-type": "application/json",
       },
 
-      to: [
-        {
-          email: recipientEmail,
-          ...(recipientName
-            ? { name: recipientName }
-            : {}),
-        },
-      ],
-
-      subject,
-      htmlContent,
-      textContent,
-    }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    console.error("Brevo email error:", data);
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    console.error("========== BREVO NETWORK ERROR ==========");
+    console.error("Error name:", error?.name);
+    console.error("Error message:", error?.message);
+    console.error("=========================================");
 
     throw new Error(
-      data?.message ||
-        "Unable to send email. Please try again later.",
+      "Unable to connect to Brevo email service.",
     );
   }
+
+  /* =========================================================
+     READ BREVO RESPONSE
+  ========================================================= */
+
+  const responseText = await response.text();
+
+  let data = {};
+
+  try {
+    data = responseText
+      ? JSON.parse(responseText)
+      : {};
+  } catch {
+    data = {
+      rawResponse: responseText,
+    };
+  }
+
+  /* =========================================================
+     BREVO ERROR HANDLING
+  ========================================================= */
+
+  if (!response.ok) {
+    console.error("========== BREVO EMAIL ERROR ==========");
+    console.error("Brevo HTTP Status:", response.status);
+    console.error("Brevo Response:", data);
+
+    console.error("Brevo Request ID:", {
+      requestId:
+        response.headers.get("x-request-id") ||
+        response.headers.get("x-sib-request-id") ||
+        null,
+    });
+
+    console.error("========================================");
+
+    const brevoMessage =
+      data?.message ||
+      data?.error ||
+      data?.rawResponse ||
+      "Unable to send email.";
+
+    const brevoCode =
+      data?.code ||
+      "unknown_brevo_error";
+
+    throw new Error(
+      `Brevo ${response.status} [${brevoCode}]: ${brevoMessage}`,
+    );
+  }
+
+  /* =========================================================
+     SUCCESS
+  ========================================================= */
+
+  console.log("========== BREVO EMAIL SUCCESS ==========");
+  console.log("Brevo HTTP Status:", response.status);
+  console.log("Brevo Message ID:", data?.messageId || null);
+  console.log("=========================================");
 
   return data;
 }
