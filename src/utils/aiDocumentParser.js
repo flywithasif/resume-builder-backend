@@ -1030,7 +1030,10 @@ export async function analyzeDocument(
     return parseResume(documentText);
   }
 
-  if (documentType === "cover-letter") {
+  if (
+    documentType === "cover-letter" ||
+    documentType === "coverLetter"
+  ) {
     return parseCoverLetter(documentText);
   }
 
